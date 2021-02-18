@@ -182,8 +182,7 @@ function handleVideo(video) {
         case "IPFS":
         case "BTFS":
             var gw = prov.getDefaultGateway(video)
-            let isLive = prov.isLive(video)
-            if (isLive)
+            if (prov.isLive(video))
                 return createLivePlayer(video,autoplay)
             var qualities = generateQualities(video)
             if (!qualities || qualities.length == 0) {
@@ -203,6 +202,8 @@ function handleVideo(video) {
 
         case "Skynet":
             var gw = prov.getDefaultGateway(video)
+            if (prov.isLive(video))
+                return createLivePlayer(video,autoplay)
             var qualities = generateQualities(video)
             if (!qualities || qualities.length == 0) {
                 prov.tryNext(video)
