@@ -32,8 +32,6 @@ steemAPI = [
     "https://api.steem.house"
 ]
 avalonAPI = 'https://avalon.d.tube'
-IpfsShortTermGw = 'https://video.dtube.top'
-BtfsShortTermGw = "https://player.d.tube"
 player = null
 itLoaded = false
 timeout = 1500
@@ -184,6 +182,9 @@ function handleVideo(video) {
         case "IPFS":
         case "BTFS":
             var gw = prov.getDefaultGateway(video)
+            let isLive = prov.isLive(video)
+            if (isLive)
+                return createLivePlayer(video,autoplay)
             var qualities = generateQualities(video)
             if (!qualities || qualities.length == 0) {
                 prov.tryNext(video)
@@ -501,6 +502,102 @@ function createPlayer(snapUrl, autoplay, branding, qualities, sprite, duration, 
     handleResize()
 }
 
+function createLivePlayer(video, autoplay) {
+    let c = document.createElement("video")
+    let snapUrl = getCoverUrl(video)
+    if (snapUrl)
+        c.poster = snapUrl
+    c.controls = true
+    c.autoplay = autoplay
+    c.id = "player"
+    c.className = "video-js"
+    c.style = "width:100%;height:100%"
+    c.addEventListener('loadeddata', function() {
+        if (c.readyState >= 3) {
+            itLoaded = true
+            if (!duration) {
+                duration = Math.round(player.duration())
+                parent.postMessage({dur: duration}, "*")
+            }
+        }
+    })
+
+    document.body.appendChild(c)
+
+    // Setting menu items
+    var menuEntries = []
+    menuEntries.push('PlaybackRateMenuButton')
+    // menuEntries.push('ResolutionMenuButton')
+    menuEntries.push('GatewaySwitcherMenuButton')
+
+    player = videojs("player", {
+        inactivityTimeout: 1000,
+        techOrder: ["html5"],
+        'playbackRates': [0.5, 0.75, 1, 1.25, 1.5, 2],
+        controlBar: {
+            children: {
+                'playToggle': {},
+                'muteToggle': {},
+                'volumeControl': {},
+                'currentTimeDisplay': {},
+                'timeDivider': {},
+                'durationDisplay': {},
+                'liveDisplay': {},
+                'flexibleWidthSpacer': {},
+                'progressControl': {},
+                'settingsMenuButton': {
+                    entries: menuEntries
+                },
+                'fullscreenToggle': {}
+            }
+        },
+        plugins: {
+            persistvolume: {
+                namespace: 'dtube'
+            },
+            IPFSGatewaySwitcher: {},
+            // videoJsResolutionSwitcher: {
+            //     dynamicLabel: true
+            // },
+            statistics: {}
+        }
+    })
+
+    let initGw = prov.getDefaultGateway(video)
+
+    player.src({
+        src: m3u8Url(prov.isLive(video),initGw),
+        type: 'application/x-mpegURL'
+    })
+
+    videojs('player').ready(function() {
+        const adapter = new playerjs.VideoJSAdapter(this)
+        
+        document.getElementsByClassName('vjs-settings-sub-menu-value')[document.getElementsByClassName('vjs-settings-sub-menu-value').length - 1].innerHTML = initGw
+        
+        this.hotkeys({
+            seekStep: 5,
+            enableModifiersForNumbers: false
+        });
+
+        window.onmessage = function(e) {
+            if (e.data.seekTo)
+                player.currentTime(e.data.seekTime)
+        }
+
+        adapter.ready()
+    })
+
+    player.brand({
+        branding: !JSON.parse(nobranding),
+        title: "Watch on DTube",
+        destination: "http://d.tube/#!/v/" + videoAuthor + '/' + videoPermlink,
+        destinationTarget: "_blank"
+    })
+
+    handleResize()
+}
+
 function removePlayer() {
     var elem = document.getElementById('player');
     return elem.parentNode.removeChild(elem);
@@ -512,6 +609,12 @@ function subtitleUrl(ipfsHash) {
 
 function spriteUrl(ipfsHash) {
     return 'https://sprite.d.tube/btfs/' + ipfsHash
+}
+
+function m3u8Url(liveHref,gw) {
+    if (liveHref[0].startsWith('dtc'))
+        return avalonAPI + '/stream/' + liveHref[1] + '/' + liveHref[2] + '/master?gw=' + gw
+    // todo HAlive
 }
 
 function generateQualities(a) {

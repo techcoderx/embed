@@ -94,5 +94,15 @@ prov = {
             }
         }
         return 'IPFS'
+    },
+    isLive: (video) => {
+        if (video && video.files)
+            for (let i in allProviders) if (allProviders[i].dht == 1)
+                if (video.files[allProviders[i].id] && video.files[allProviders[i].id].live && typeof video.files[allProviders[i].id].live.href === 'string') {
+                    let splitRef = video.files[allProviders[i].id].live.href.split('/')
+                    if (splitRef.length === 3)
+                        return splitRef
+                }
+        return false
     }
 }
