@@ -60,8 +60,10 @@ prov = {
                 if (allProviders[i].dht == 1) {
                     if (
                         video.files[allProviders[i].id] &&
-                        video.files[allProviders[i].id].vid &&
-                        Object.keys(video.files[allProviders[i].id].vid).length > 0
+                        ((video.files[allProviders[i].id].vid &&
+                        Object.keys(video.files[allProviders[i].id].vid).length > 0) ||
+                        (video.files[allProviders[i].id].live &&
+                        typeof video.files[allProviders[i].id].live.href === 'string'))
                     ) {
                         provs.push(allProviders[i].disp)
                     }
@@ -82,8 +84,10 @@ prov = {
                 if (allProviders[i].dht == 1) {
                     if (
                         video.files[allProviders[i].id] &&
-                        video.files[allProviders[i].id].vid &&
-                        Object.keys(video.files[allProviders[i].id].vid).length > 0
+                        ((video.files[allProviders[i].id].vid &&
+                        Object.keys(video.files[allProviders[i].id].vid).length > 0) ||
+                        (video.files[allProviders[i].id].live &&
+                        typeof video.files[allProviders[i].id].live.href === 'string'))
                     ) {
                         return allProviders[i].disp
                     }
